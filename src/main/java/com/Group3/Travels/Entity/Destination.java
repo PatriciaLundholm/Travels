@@ -10,12 +10,15 @@ public class Destination {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String name;
+    private String hotel_name;
     private String city;
     private String country;
 
-    @Column(name = "price_per_week")
-    private BigDecimal pricePerWeek;
+    @Column(name = "price_per_week_sek")
+    private Double pricePerWeekSek;
+
+    @Column(name = "price_per_week_pln")
+    private Double pricePerWeekPln;
 
     public Destination() {}
 
@@ -28,11 +31,11 @@ public class Destination {
     }
 
     public String getName() {
-        return name;
+        return hotel_name;
     }
 
     public void setName(String name) {
-        this.name = name;
+        this.hotel_name = name;
     }
 
     public String getCity() {
@@ -51,11 +54,19 @@ public class Destination {
         this.country = country;
     }
 
-    public BigDecimal getPricePerWeek() {
-        return pricePerWeek;
+    public Double getPricePerWeekSek() {
+        return pricePerWeekSek;
     }
 
-    public void setPricePerWeek(BigDecimal pricePerWeek) {
-        this.pricePerWeek = pricePerWeek;
+    public void setPricePerWeekSek(Double pricePerWeekSek) {
+        this.pricePerWeekSek = pricePerWeekSek;
+    }
+
+    public Double getPricePerWeekPln() {
+        return pricePerWeekPln;
+    }
+
+    public void setPricePerWeekPln(Double pricePerWeekPln) {
+        this.pricePerWeekPln = pricePerWeekPln;
     }
 }

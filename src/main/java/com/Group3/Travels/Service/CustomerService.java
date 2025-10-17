@@ -1,6 +1,5 @@
 package com.Group3.Travels.Service;
 
-import com.Group3.Travels.Entity.Address;
 import com.Group3.Travels.Entity.Customer;
 import com.Group3.Travels.Repository.AddressRepository;
 import com.Group3.Travels.Repository.CustomerRepository;
@@ -53,10 +52,10 @@ public class CustomerService {
         return false;
     }
 
-    public Optional<Address> addAddress(Long customerId, Address address) {
+    public Optional<com.group3.travels.entity.Address> addAddress(Long customerId, com.group3.travels.entity.Address address) {
         return customerRepository.findById(customerId).map(customer -> {
             address.setCustomer(customer);
-            Address saved = addressRepository.save(address);
+            com.group3.travels.entity.Address saved = addressRepository.save(address);
             System.out.println("admin added address for customer id=" + customerId);
             return saved;
         });

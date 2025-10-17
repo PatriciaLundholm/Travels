@@ -1,22 +1,32 @@
 package com.Group3.Travels.Entity;
 
-
 import jakarta.persistence.*;
 
 @Entity
 @Table(name = "customer")
 public class Customer {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String username;
-    private String full_name;
+    private String fullName;
     private String email;
-    private long phone;
+    private String phone;  // ändrat till String
 
+    // Default konstruktor
     public Customer() {}
 
+    // Parametriserad konstruktor
+    public Customer(String username, String fullName, String email, String phone) {
+        this.username = username;
+        this.fullName = fullName;
+        this.email = email;
+        this.phone = phone;
+    }
+
+    // Getters och setters
     public Long getId() {
         return id;
     }
@@ -33,12 +43,12 @@ public class Customer {
         this.username = username;
     }
 
-    public String getFull_name() {
-        return full_name;
+    public String getFullName() {
+        return fullName;
     }
 
-    public void setFull_name(String full_name) {
-        this.full_name = full_name;
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
     }
 
     public String getEmail() {
@@ -49,11 +59,11 @@ public class Customer {
         this.email = email;
     }
 
-    public long getPhone() {
+    public String getPhone() {
         return phone;
     }
 
-    public void setPhone(long phone) {
+    public void setPhone(String phone) {
         this.phone = phone;
     }
 }

@@ -15,10 +15,9 @@ public class Customer {
     private String email;
     private String phone;  // ändrat till String
 
-    // Default konstruktor
+
     public Customer() {}
 
-    // Parametriserad konstruktor
     public Customer(String username, String fullName, String email, String phone) {
         this.username = username;
         this.fullName = fullName;
@@ -26,7 +25,7 @@ public class Customer {
         this.phone = phone;
     }
 
-    // Getters och setters
+
     public Long getId() {
         return id;
     }

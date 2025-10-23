@@ -1,23 +1,34 @@
 package com.Group3.Travels.Controller;
 
-import com.Group3.Travels.Entity.*;
-import com.Group3.Travels.Repository.*;
+import com.Group3.Travels.dto.BookingDTO;
+import com.Group3.Travels.Entity.Booking;
+import com.Group3.Travels.Entity.Customer;
+import com.Group3.Travels.Entity.Destination;
+import com.Group3.Travels.Repository.BookingRepository;
+import com.Group3.Travels.Repository.CustomerRepository;
+import com.Group3.Travels.Repository.DestinationRepository;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-import org.springframework.security.access.prepost.PreAuthorize;
+
 import java.net.URI;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/bookings")
+@CrossOrigin(origins = "*")
 public class BookingController {
 
     private final BookingRepository bookingRepo;
     private final CustomerRepository customerRepo;
     private final DestinationRepository destinationRepo;
 
-    public BookingController(BookingRepository bookingRepo, CustomerRepository customerRepo, DestinationRepository destinationRepo) {
+    private static final double SEK_TO_PLN = 0.45; // fast växelkurs
+
+    public BookingController(BookingRepository bookingRepo,
+                             CustomerRepository customerRepo,
+                             DestinationRepository destinationRepo) {
         this.bookingRepo = bookingRepo;
         this.customerRepo = customerRepo;
         this.destinationRepo = destinationRepo;
@@ -25,49 +36,88 @@ public class BookingController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','USER')")
-    public ResponseEntity<?> createBooking(@RequestBody Booking b) {
-        var customer = customerRepo.findById(b.getCustomer().getId()).orElse(null);
-        var dest = destinationRepo.findById(b.getDestination().getId()).orElse(null);
-        if (customer == null || dest == null) return ResponseEntity.badRequest().body("Invalid customer or destination");
+    public ResponseEntity<?> createBooking(@RequestBody BookingDTO dto) {
+        Customer customer = customerRepo.findById(dto.getCustomerId()).orElse(null);
+        Destination destination = destinationRepo.findById(dto.getDestinationId()).orElse(null);
 
-        b.setHotelName(dest.getHotelName());
-        b.setTotalPriceSek(dest.getPricePerWeekSek() * b.getWeeks());
-        b.setTotalPricePln(dest.getPricePerWeekPln() * b.getWeeks());
-        Booking saved = bookingRepo.save(b);
+        if (customer == null) {
+            return ResponseEntity.badRequest().body("Customer with ID " + dto.getCustomerId() + " not found");
+        }
+        if (destination == null) {
+            return ResponseEntity.badRequest().body("Destination with ID " + dto.getDestinationId() + " not found");
+        }
 
-        URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(saved.getId()).toUri();
-        System.out.println("customer " + customer.getUsername() + " booked trip to " + dest.getCity());
+        Booking booking = new Booking();
+        booking.setCustomer(customer);
+        booking.setDestination(destination);
+        booking.setHotelName(dto.getHotelName() != null ? dto.getHotelName() : destination.getHotelName());
+        booking.setDepartureDate(dto.getDepartureDate());
+        booking.setWeeks(dto.getWeeks());
+
+        double totalSek = destination.getPricePerWeekSek() * dto.getWeeks();
+        double totalPln = totalSek * SEK_TO_PLN;
+
+        booking.setTotalPriceSek(totalSek);
+        booking.setTotalPricePln(totalPln);
+
+        Booking saved = bookingRepo.save(booking);
+
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(saved.getId())
+                .toUri();
+
+        System.out.println("Customer " + customer.getUsername() +
+                " booked trip to " + destination.getCity() +
+                " for " + totalSek + " SEK / " + totalPln + " PLN");
+
         return ResponseEntity.created(location).body(saved);
     }
 
+
     @PatchMapping("/{bookingId}")
     @PreAuthorize("hasAnyRole('ADMIN','USER')")
-    public ResponseEntity<?> patchBooking(@PathVariable Long bookingId, @RequestBody Booking patch) {
+    public ResponseEntity<?> patchBooking(@PathVariable Long bookingId, @RequestBody BookingDTO dto) {
         return bookingRepo.findById(bookingId).map(b -> {
-            if (patch.getWeeks() != null) {
-                b.setWeeks(patch.getWeeks());
+
+            if (dto.getWeeks() != null) {
+                b.setWeeks(dto.getWeeks());
                 b.setTotalPriceSek(b.getDestination().getPricePerWeekSek() * b.getWeeks());
-                b.setTotalPricePln(b.getDestination().getPricePerWeekPln() * b.getWeeks());
+                b.setTotalPricePln(b.getTotalPriceSek() * SEK_TO_PLN);
             }
-            if (patch.getDestination() != null && patch.getDestination().getId() != null) {
-                destinationRepo.findById(patch.getDestination().getId()).ifPresent(dest -> {
+
+            if (dto.getDestinationId() != null) {
+                destinationRepo.findById(dto.getDestinationId()).ifPresent(dest -> {
                     b.setDestination(dest);
-                    b.setHotelName(dest.getHotelName());
+                    b.setHotelName(dto.getHotelName() != null ? dto.getHotelName() : dest.getHotelName());
                     b.setTotalPriceSek(dest.getPricePerWeekSek() * b.getWeeks());
-                    b.setTotalPricePln(dest.getPricePerWeekPln() * b.getWeeks());
+                    b.setTotalPricePln(b.getTotalPriceSek() * SEK_TO_PLN);
                 });
             }
-            if (patch.getHotelName() != null) b.setHotelName(patch.getHotelName());
+
+            if (dto.getHotelName() != null) {
+                b.setHotelName(dto.getHotelName());
+            }
+
+            if (dto.getDepartureDate() != null) {
+                b.setDepartureDate(dto.getDepartureDate());
+            }
+
             bookingRepo.save(b);
-            System.out.println("booking " + bookingId + " updated");
+            System.out.println("Booking " + bookingId + " updated: " +
+                    b.getTotalPriceSek() + " SEK / " + b.getTotalPricePln() + " PLN");
             return ResponseEntity.ok(b);
         }).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','USER')")
     public ResponseEntity<List<Booking>> getBookingsByCustomer(@RequestParam Long customerId) {
-        var list = bookingRepo.findByCustomerId(customerId);
+        List<Booking> list = bookingRepo.findByCustomerId(customerId);
+        if (list.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
         return ResponseEntity.ok(list);
     }
 }

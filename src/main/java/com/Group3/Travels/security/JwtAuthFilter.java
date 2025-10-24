@@ -39,10 +39,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 String username = claims.getBody().getSubject();
                 List<String> roles = claims.getBody().get("roles", List.class);
 
-
+                // Skapa authorities med prefix ROLE_
                 List<SimpleGrantedAuthority> authorities = roles.stream()
-                        .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+                        .map(role -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
                         .collect(Collectors.toList());
+
+                // Logga för felsökning
+                System.out.println("Username from token: " + username);
+                System.out.println("Roles from token: " + roles);
+                System.out.println("Authorities: " + authorities);
 
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(username, null, authorities);
@@ -58,4 +63,3 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 }
-
